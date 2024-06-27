@@ -62,14 +62,10 @@ local keywords = {
 
 return function(src, opts)
   opts = opts or {}
-  opts.extended_assignment = opts.extended_assignment or false
-
-  local tokens = {}
 
   local pos = 1
   local start = 1
-  local lineoffset = 0
-  local currentLineLength = 0
+  local tokens = {}
 
   local function look(delta)
     delta = pos + (delta or 0)
@@ -87,33 +83,29 @@ return function(src, opts)
     local token = {
       type = type,
       data = data,
-      posFirst = start - lineoffset,
-      posLast = pos - 1 - lineoffset
+      posStart = start,
+      posEnd = pos - 1
     }
 
-    if token.data ~= '' or token.type == "newline" then
+    if token.data ~= '' then
       table.insert(tokens, token)
     end
 
-    currentLineLength = currentLineLength + data:len()
     start = pos
 
     return token
   end
 
-  local function newline(push)
+  local function newline()
     while look() == "\n" do
       get()
     end
 
-    start = pos
-
-    if push then
+    if opts.newline then
       pushToken('newline')
+    else
+      start = pos
     end
-
-    lineoffset = lineoffset + currentLineLength
-    currentLineLength = 0
   end
 
   local function chompWhitespace()
@@ -121,9 +113,12 @@ return function(src, opts)
       local char = look()
 
       if char == '\n' then
-        newline(true)
+        newline()
       elseif whitespace[char] then
         get()
+        if opts.whitespace then
+          pushToken('whitespace')
+        end
       else
         break
       end
@@ -141,9 +136,9 @@ return function(src, opts)
         while true do
           local c = look()
 
-          if (is_block_comment and c == "]" and look(-1) == "]") or (not is_block_comment and look(1) == '\n') then
+          if (is_block_comment and c == "]" and look(-1) == "]") or (not is_block_comment and look() == '\n') then
             get()
-            newline(true)
+            start = pos + 1
             break
           end
 
@@ -209,7 +204,7 @@ return function(src, opts)
         pushToken('keyword')
       elseif keywords.value[token] then
         pushToken((token == 'true' or token == 'false') and 'boolean' or 'nil')
-      elseif tokens[#tokens].data == "goto" or tokens[#tokens].data == '::' then
+      elseif tokens[#tokens].data == "goto" then
         pushToken('label')
       else
         pushToken('identifier')
@@ -244,10 +239,23 @@ return function(src, opts)
     ['label'] = function()
       get()
 
-      if #tokens - 1 > 0 and tokens[#tokens - 1].type == "label:start" then
+      pushToken('label:start')
+      chompWhitespace()
+
+      while alphabet[look()] or digits[look()] do
+        get()
+      end
+
+      pushToken('label')
+
+      chompWhitespace()
+      if look() == ':' and look(1) == ':' then
+        get()
+        get()
+
         pushToken('label:end')
       else
-        pushToken('label:start')
+        error("The program failed to identify the label closure token: '::'")
       end
     end,
     ['operator'] = function()
@@ -303,12 +311,12 @@ return function(src, opts)
 
     local _ =
         is.string(char, next_char) and tokenizer.string(char) or
-        is.word(char)              and tokenizer.word()       or
-        is.number(char, next_char) and tokenizer.number()     or
-        is.point(char)             and tokenizer.point()      or
-        is.label(char, next_char)  and tokenizer.label()      or
-        is.operator(char)          and tokenizer.operator()   or
-        is.symbol(char)            and pushToken('symbol')    or
+        is.word(char) and tokenizer.word() or
+        is.number(char, next_char) and tokenizer.number() or
+        is.point(char) and tokenizer.point() or
+        is.label(char, next_char) and tokenizer.label() or
+        is.operator(char) and tokenizer.operator() or
+        is.symbol(char) and pushToken('symbol') or
         pushToken('undefined')
   end
 
