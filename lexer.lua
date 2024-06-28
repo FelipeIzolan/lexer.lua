@@ -127,29 +127,6 @@ return function(src, opts)
     start = pos
   end
 
-  local function chompComment()
-    while true do
-      local char = look()
-
-      if char == "-" and look(1) == '-' then
-        local is_block_comment = look(2) == "[" and look(3) == "["
-        while true do
-          local c = look()
-
-          if (is_block_comment and c == "]" and look(-1) == "]") or (not is_block_comment and look() == '\n') then
-            get()
-            start = pos + 1
-            break
-          end
-
-          get()
-        end
-      else
-        break
-      end
-    end
-  end
-
   local tokenizer = {
     ['string'] = function(init)
       local level = 0
@@ -224,6 +201,47 @@ return function(src, opts)
 
       pushToken('number')
     end,
+    ['comment'] = function()
+      local is_block_comment = look(1) == '[' and look(2) == '['
+
+      get()
+      if is_block_comment then
+        get()
+        get()
+      end
+
+      if opts.comment then
+        pushToken('comment:start')
+      end
+
+      while true do
+        local c = look()
+
+        if (not is_block_comment and c == '\n') or (is_block_comment and c == ']' and look(1) == ']') then
+          if opts.comment then
+            pushToken('comment')
+          end
+          break
+        end
+
+        get()
+        if pos == #src then
+          error("The program failed to identify the comment closure token: ]]")
+        end
+      end
+
+      get()
+
+      if is_block_comment then
+        get()
+      end
+
+      if opts.comment then
+        pushToken('comment:end')
+      end
+
+      start = pos
+    end,
     ['point'] = function()
       for _ = 1, 2 do
         if look() == '.' then
@@ -284,6 +302,9 @@ return function(src, opts)
     ['number'] = function(char, next_char)
       return digits[char] or (char == '.' and digits[next_char])
     end,
+    ['comment'] = function(char, next_char)
+      return char == '-' and next_char == '-'
+    end,
     ['point'] = function(char)
       return char == '.'
     end,
@@ -300,7 +321,6 @@ return function(src, opts)
 
   while true do
     chompWhitespace()
-    chompComment()
 
     local char = get()
     local next_char = look()
@@ -313,6 +333,7 @@ return function(src, opts)
         is.string(char, next_char) and tokenizer.string(char) or
         is.word(char) and tokenizer.word() or
         is.number(char, next_char) and tokenizer.number() or
+        is.comment(char, next_char) and tokenizer.comment() or
         is.point(char) and tokenizer.point() or
         is.label(char, next_char) and tokenizer.label() or
         is.operator(char) and tokenizer.operator() or

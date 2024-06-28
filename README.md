@@ -18,8 +18,8 @@ Each token has the following structure:
 
 Each token can have one of the following types:
 
-- `string:start` and `string:end`: starts and ends of a string. There will be no non-string tokens between these two.
 - `string`: The string data between `string:start` and `string:end`.
+- `string:start` and `string:end`: starts and ends of a string. There will be no non-string tokens between these two.
 - `number`: Numbers, including both base 10 (and scientific notation) and hexadecimal.
 - `boolean`: `true` or `false`
 - `nil`: `nil`
@@ -28,17 +28,20 @@ Each token can have one of the following types:
 - `symbol`: Symbols, like brackets, parenthesis, ., etc.
 - `vararg`: `...`
 - `operator`: Operators, like `+`, `-`, `%`, `=`, `==`, `>=`, `<=`, `~=`, `#`, `..`, `//` etc.
+- `label`: Basically an `identifier` between a `label:start` and `label:end` or after `goto`.
 - `label:start` and `label:end`: The starts and ends of labels. Always equal to `'::'`.
-- `label`: Basically an `identifier` between a `label:start` and `label:end`.
 - `newline`: `\n`.
 - `whitespace`: ` `, `\t` and `\r`.
+- `comment`: Basically a `string` between a `comment:start` and `comment:end`.
+- `comment:start` and `comment:end`: starts and ends of a comment.
 - `undefined`: Anything that isn't one of the above tokens. Consider them errors.
 
 ### 🔧 Options
 
-- `newline(boolean)` - Lex newline or not (default=false).
-- `whitespace(boolean)` - Lex whitespace or not (default=false).
-- `extended_assignment(boolean)` - Lex `+=`, `-=`, `*=`, `/=`, `%=`, `^=` operators, useful for pico-8 (default=false).
+- `comment(boolean)` - Lex comment or not(default=false).
+- `newline(boolean)` - Lex newline or not(default=false).
+- `whitespace(boolean)` - Lex whitespace or not(default=false).
+- `extended_assignment(boolean)` - Lex `+=`, `-=`, `*=`, `/=`, `%=`, `^=` operators, useful for pico-8(default=false).
 
 ## 📜 License
 
