@@ -30,20 +30,18 @@ Each token can have one of the following types:
 - `operator`: Operators, like `+`, `-`, `%`, `=`, `==`, `>=`, `<=`, `~=`, `#`, `..`, `//` etc.
 - `label`: Basically an `identifier` between a `label:start` and `label:end` or after `goto`.
 - `label:start` and `label:end`: The starts and ends of labels. Always equal to `'::'`.
-- `newline`: `\n`.
-- `whitespace`: ` `, `\t` and `\r`.
+- `whitespace`: ` `, `\n`, `\t` and `\r`.
 - `comment`: Basically a `string` between a `comment:start` and `comment:end`.
-- `comment:start` and `comment:end`: starts and ends of a comment.
+- `comment:start` and `comment:end`: starts and ends of a comment, `comment:end` can be `]]` or `\n`.
 - `undefined`: Anything that isn't one of the above tokens. Consider them errors.
 
 ### 🔧 Options
 
 - `comment(boolean)` - Lex comment or not(default=false).
-- `newline(boolean)` - Lex newline or not(default=false).
-- `whitespace(boolean)` - Lex whitespace or not(default=false).
+- `whitespace('all'|'newline'|false)` - Lex whitespace or not(default=false).
 - `extended_assignment(boolean)` - Lex `+=`, `-=`, `*=`, `/=`, `%=`, `^=` operators, useful for pico-8(default=false).
 
 ## 📜 License
 
 - [lexer.lua](https://github.com/FelipeIzolan/lexer.lua) - MIT
-- [busted](https://github.com/lunarmodules/busted) - MIT
+- [luaunit](https://github.com/bluebird75/luaunit) - MIT

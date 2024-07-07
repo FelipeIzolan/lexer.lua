@@ -36,8 +36,12 @@ local function lookupify(src)
   return list
 end
 
+local function err(type, token)
+  error("The program failed to identify the " .. type .. " token: " .. token)
+end
+
 local alphabet = lookupify('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_')
-local whitespace = lookupify(' \n\t\r')
+local whitespace = lookupify('\n\t\r ')
 
 local digits = lookupify('0123456789')
 local hex_digits = lookupify('0123456789abcdefABCDEF')
@@ -52,7 +56,7 @@ local keywords = {
   structure = lookupify({
     'and', 'break', 'do', 'else', 'elseif', 'end', 'for', 'function',
     'goto', 'if', 'in', 'local', 'not', 'or', 'repeat', 'return', 'then',
-    'until', 'while', '<const>'
+    'until', 'while'
   }),
 
   value = lookupify({
@@ -67,19 +71,16 @@ return function(src, opts)
   local start = 1
   local tokens = {}
 
-  local function look(delta)
-    delta = pos + (delta or 0)
-    return src:sub(delta, delta)
+  local function getCurrentTokenData()
+    return src:sub(start, pos - 1)
   end
 
-  local function get()
-    pos = pos + 1
-    return look(-1)
+  local function getLastTokenData()
+    return #tokens > 0 and tokens[#tokens].data or nil
   end
 
   local function pushToken(type, data)
-    data = data or src:sub(start, pos - 1)
-
+    data = data or getCurrentTokenData()
     local token = {
       type = type,
       data = data,
@@ -96,248 +97,245 @@ return function(src, opts)
     return token
   end
 
-  local function newline()
-    while look() == "\n" do
+  local function look(delta)
+    delta = pos + (delta or 0)
+    return src:sub(delta, delta)
+  end
+
+  local function get()
+    pos = pos + 1
+    return look(-1)
+  end
+
+  local function getSquareBracketLevel()
+    local level = 0
+
+    while look() == '=' do
+      level = level + 1
       get()
     end
 
-    if opts.newline then
-      pushToken('newline')
+    return level
+  end
+
+  local tokenizer = {}
+
+  function tokenizer.whitespace()
+    local char = look()
+
+    if opts.whitespace == 'all' or (opts.whitespace == 'newline' and char == '\n') then
+      pushToken('whitespace')
     else
       start = pos
     end
+
+    if whitespace[look()] then
+      get()
+      tokenizer.whitespace()
+    end
   end
 
-  local function chompWhitespace()
+  function tokenizer.string()
+    local string_start = look(-1)
+    local level = 0
+    ------------------------------------------
+    if string_start == '[' then
+      level = getSquareBracketLevel()
+      get()
+    end
+    pushToken("string:start")
+    ------------------------------------------
     while true do
-      local char = look()
+      local char = get()
+      local next_char = look()
 
-      if char == '\n' then
-        newline()
-      elseif whitespace[char] then
-        get()
-        if opts.whitespace then
-          pushToken('whitespace')
-        end
-      else
+      if string_start ~= '[' and char ~= '\\' and next_char == string_start then
         break
       end
+
+      if string_start == '[' and next_char == ']' and look(level + 1) == ']' then
+        break
+      end
+
+      if pos == #src then
+        err('string', getLastTokenData():gsub('%[', ']'))
+      end
+    end
+    pushToken('string')
+    ------------------------------------------
+    get()
+    if string_start == '[' then
+      getSquareBracketLevel()
+      get()
+    end
+    pushToken("string:end")
+  end
+
+  function tokenizer.word()
+    while alphabet[look()] or digits[look()] do
+      get()
+    end
+
+    local token = getCurrentTokenData()
+
+    if keywords.structure[token] then
+      pushToken('keyword')
+    elseif keywords.value[token] then
+      pushToken((token == 'true' or token == 'false') and 'boolean' or 'nil')
+    elseif getLastTokenData() == "goto" then
+      pushToken('label')
+    else
+      pushToken('identifier')
+    end
+  end
+
+  function tokenizer.number()
+    if look(-1) == '0' and look() == 'x' then
+      get()
+      while hex_digits[look()] do
+        get()
+      end
+    else
+      while digits[look()] or scientific_digits[look()] do
+        get()
+      end
+    end
+
+    pushToken('number')
+  end
+
+  function tokenizer.comment()
+    local is_block_comment = look(1) == '[' and look(2) == '['
+
+    get()
+    if is_block_comment then
+      get()
+      get()
+    end
+
+    if opts.comment then
+      pushToken('comment:start')
+    end
+
+    while true do
+      local c = look()
+
+      if (not is_block_comment and c == '\n') or (is_block_comment and c == ']' and look(1) == ']') then
+        if opts.comment then
+          pushToken('comment')
+        end
+        break
+      end
+
+      get()
+    end
+
+    get()
+
+    if is_block_comment then
+      get()
+    end
+
+    if opts.comment then
+      pushToken('comment:end')
     end
 
     start = pos
   end
 
-  local tokenizer = {
-    ['string'] = function(init)
-      local level = 0
-
-      if init == '[' then
-        while look() == '=' do
-          level = level + 1
-          get()
-        end
-        get()
-      end
-
-      pushToken("string:start")
-      -----------------------------
-      while true do
-        local char = get()
-        local next_char = look()
-
-        if init ~= '[' and next_char == init and char ~= '\\' then
-          break
-        end
-
-        if init == '[' and next_char == ']' and look(level + 1) == ']' then
-          break
-        end
-
-        if pos == #src then
-          error("The program failed to identify the string closure token: " .. tokens[#tokens].data:gsub('%[', ']'))
-        end
-      end
-
-      pushToken('string')
-      -----------------------------
+  function tokenizer.point()
+    while look() == '.' do
       get()
-      if init == '[' then
-        while look() == '=' do
-          get()
-        end
-        get()
-      end
-
-      pushToken("string:end")
-    end,
-    ['word'] = function()
-      local token = look(-1)
-
-      while alphabet[look()] or digits[look()] do
-        token = token .. get()
-      end
-
-      if keywords.structure[token] then
-        pushToken('keyword')
-      elseif keywords.value[token] then
-        pushToken((token == 'true' or token == 'false') and 'boolean' or 'nil')
-      elseif tokens[#tokens].data == "goto" then
-        pushToken('label')
-      else
-        pushToken('identifier')
-      end
-    end,
-    ['number'] = function()
-      if look(-1) == '0' and look() == 'x' then
-        get()
-        while hex_digits[look()] do
-          get()
-        end
-      else
-        while digits[look()] or scientific_digits[look()] do
-          get()
-        end
-      end
-
-      pushToken('number')
-    end,
-    ['comment'] = function()
-      local is_block_comment = look(1) == '[' and look(2) == '['
-
-      get()
-      if is_block_comment then
-        get()
-        get()
-      end
-
-      if opts.comment then
-        pushToken('comment:start')
-      end
-
-      while true do
-        local c = look()
-
-        if (not is_block_comment and c == '\n') or (is_block_comment and c == ']' and look(1) == ']') then
-          if opts.comment then
-            pushToken('comment')
-          end
-          break
-        end
-
-        get()
-        if pos == #src then
-          error("The program failed to identify the comment closure token: ]]")
-        end
-      end
-
-      get()
-
-      if is_block_comment then
-        get()
-      end
-
-      if opts.comment then
-        pushToken('comment:end')
-      end
-
-      start = pos
-    end,
-    ['point'] = function()
-      for _ = 1, 2 do
-        if look() == '.' then
-          get()
-        else
-          break
-        end
-      end
-
-      local length = src:sub(start, pos - 1):len()
-      pushToken(length == 3 and 'vararg' or length == 2 and 'operator' or 'symbol')
-    end,
-    ['label'] = function()
-      get()
-
-      pushToken('label:start')
-      chompWhitespace()
-
-      while alphabet[look()] or digits[look()] do
-        get()
-      end
-
-      pushToken('label')
-
-      chompWhitespace()
-      if look() == ':' and look(1) == ':' then
-        get()
-        get()
-
-        pushToken('label:end')
-      else
-        error("The program failed to identify the label closure token: '::'")
-      end
-    end,
-    ['operator'] = function()
-      local operator = look(-1)
-      local next = look()
-
-      if arithmetic_operators[operator] and ((opts.extended_assignment and next == '=') or (operator == '/' and next == '/')) then
-        get()
-      end
-
-      if relational_operators[operator] and next == '=' then
-        get()
-      end
-
-      pushToken("operator")
-    end,
-  }
-
-  local is = {
-    ['string'] = function(char, next_char)
-      return char == '\'' or char == '"' or (char == '[' and (next_char == '[' or next_char == '='))
-    end,
-    ['word'] = function(char)
-      return alphabet[char]
-    end,
-    ['number'] = function(char, next_char)
-      return digits[char] or (char == '.' and digits[next_char])
-    end,
-    ['comment'] = function(char, next_char)
-      return char == '-' and next_char == '-'
-    end,
-    ['point'] = function(char)
-      return char == '.'
-    end,
-    ['label'] = function(char, next_char)
-      return char == ':' and next_char == ':'
-    end,
-    ['operator'] = function(char)
-      return operators[char] or char == "#"
-    end,
-    ['symbol'] = function(char)
-      return symbols[char]
     end
-  }
+
+    local length = getCurrentTokenData():len()
+    pushToken(length == 3 and 'vararg' or length == 2 and 'operator' or 'symbol')
+  end
+
+  function tokenizer.label()
+    get()
+    pushToken('label:start')
+    ------------------------------------------
+    tokenizer.whitespace()
+    while alphabet[look()] or digits[look()] do
+      get()
+    end
+    pushToken('label')
+    ------------------------------------------
+    tokenizer.whitespace()
+    if look() == ':' and look(1) == ':' then
+      get()
+      get()
+
+      pushToken('label:end')
+    else
+      err('label', '::')
+    end
+  end
+
+  function tokenizer.operator()
+    local operator = look(-1)
+    local next = look()
+
+    if arithmetic_operators[operator] and ((opts.extended_assignment and next == '=') or (operator == '/' and next == '/')) then
+      get()
+    end
+
+    if relational_operators[operator] and next == '=' then
+      get()
+    end
+
+    pushToken("operator")
+  end
+
+  local is = {}
+
+  function is.whitespace(char)
+    return whitespace[char]
+  end
+  function is.comment(char, next)
+    return char == '-' and next == '-'
+  end
+  function is.string(char)
+    return char == '\'' or char == '"' or char == '['
+  end
+  function is.word(char)
+    return alphabet[char]
+  end
+  function is.number(char, next)
+    return digits[char] or (char == '.' and digits[next])
+  end
+  function is.point(char)
+    return char == '.'
+  end
+  function is.label(char, next)
+    return char == ':' and next == ':'
+  end
+  function is.operator(char)
+    return operators[char] or char == "#"
+  end
+  function is.symbol(char)
+    return symbols[char]
+  end
 
   while true do
-    chompWhitespace()
-
     local char = get()
-    local next_char = look()
+    local next = look()
 
     if char == '' then
       break
     end
 
     local _ =
-        is.string(char, next_char) and tokenizer.string(char) or
-        is.word(char) and tokenizer.word() or
-        is.number(char, next_char) and tokenizer.number() or
-        is.comment(char, next_char) and tokenizer.comment() or
-        is.point(char) and tokenizer.point() or
-        is.label(char, next_char) and tokenizer.label() or
-        is.operator(char) and tokenizer.operator() or
-        is.symbol(char) and pushToken('symbol') or
+        is.whitespace(char)    and tokenizer.whitespace() or
+        is.comment(char, next) and tokenizer.comment()    or
+        is.string(char)        and tokenizer.string()     or
+        is.word(char)          and tokenizer.word()       or
+        is.number(char, next)  and tokenizer.number()     or
+        is.point(char)         and tokenizer.point()      or
+        is.label(char, next)   and tokenizer.label()      or
+        is.operator(char)      and tokenizer.operator()   or
+        is.symbol(char)        and pushToken('symbol')    or
         pushToken('undefined')
   end
 
