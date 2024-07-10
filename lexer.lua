@@ -318,13 +318,9 @@ return function(src, opts)
     return symbols[char]
   end
 
-  while true do
+  while pos < #src  do
     local char = get()
     local next = look()
-
-    if char == '' then
-      break
-    end
 
     local _ =
         is.whitespace(char)    and tokenizer.whitespace() or
