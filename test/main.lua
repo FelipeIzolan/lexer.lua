@@ -24,5 +24,6 @@ TestNumber = create_test('number')
 TestPoint = create_test('point')
 TestLabel = create_test('label')
 TestComment = create_test('comment', { comment = true })
+TestWhitespace = create_test('whitespace', { whitespace = 'all' })
 
 os.exit(unit.LuaUnit.run())

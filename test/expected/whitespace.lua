@@ -1,0 +1,23 @@
+return {
+  {data="local", posEnd=5, posStart=1, type="keyword"},
+  {data=" ", posEnd=6, posStart=6, type="whitespace"},
+  {data="test0", posEnd=11, posStart=7, type="identifier"},
+  {data=" ", posEnd=12, posStart=12, type="whitespace"},
+  {data="=", posEnd=13, posStart=13, type="operator"},
+  {data=" ", posEnd=14, posStart=14, type="whitespace"},
+  {data="1", posEnd=15, posStart=15, type="number"},
+  {data='\n', posEnd=16, posStart=16, type="whitespace"},
+  {data='\n', posEnd=17, posStart=17, type="whitespace"},
+  {data='\n', posEnd=18, posStart=18, type="whitespace"},
+  {data='\n', posEnd=19, posStart=19, type="whitespace"},
+  {data='\n', posEnd=20, posStart=20, type="whitespace"},
+  {data='\n', posEnd=21, posStart=21, type="whitespace"},
+  {data='\n', posEnd=22, posStart=22, type="whitespace"},
+  {data="local", posEnd=27, posStart=23, type="keyword"},
+  {data=" ", posEnd=28, posStart=28, type="whitespace"},
+  {data="test1", posEnd=33, posStart=29, type="identifier"},
+  {data=" ", posEnd=34, posStart=34, type="whitespace"},
+  {data="=", posEnd=35, posStart=35, type="operator"},
+  {data=" ", posEnd=36, posStart=36, type="whitespace"},
+  {data="2", posEnd=37, posStart=37, type="number"}
+}

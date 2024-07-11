@@ -121,7 +121,7 @@ return function(src, opts)
   local tokenizer = {}
 
   function tokenizer.whitespace()
-    local char = look()
+    local char = look(-1)
 
     if opts.whitespace == 'all' or (opts.whitespace == 'newline' and char == '\n') then
       pushToken('whitespace')
