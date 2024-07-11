@@ -19,5 +19,7 @@ return {
   {data=" ", posEnd=34, posStart=34, type="whitespace"},
   {data="=", posEnd=35, posStart=35, type="operator"},
   {data=" ", posEnd=36, posStart=36, type="whitespace"},
-  {data="2", posEnd=37, posStart=37, type="number"}
+  {data="2", posEnd=37, posStart=37, type="number"},
+  {data='\n', posEnd=38, posStart=38, type="whitespace"}
+
 }

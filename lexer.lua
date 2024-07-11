@@ -318,21 +318,21 @@ return function(src, opts)
     return symbols[char]
   end
 
-  while pos < #src  do
+  while look() ~= '' do
     local char = get()
     local next = look()
 
     local _ =
-        is.whitespace(char)    and tokenizer.whitespace() or
-        is.comment(char, next) and tokenizer.comment()    or
-        is.string(char)        and tokenizer.string()     or
-        is.word(char)          and tokenizer.word()       or
-        is.number(char, next)  and tokenizer.number()     or
-        is.point(char)         and tokenizer.point()      or
-        is.label(char, next)   and tokenizer.label()      or
-        is.operator(char)      and tokenizer.operator()   or
-        is.symbol(char)        and pushToken('symbol')    or
-        pushToken('undefined')
+      is.whitespace(char)    and tokenizer.whitespace() or
+      is.comment(char, next) and tokenizer.comment()    or
+      is.string(char)        and tokenizer.string()     or
+      is.word(char)          and tokenizer.word()       or
+      is.number(char, next)  and tokenizer.number()     or
+      is.point(char)         and tokenizer.point()      or
+      is.label(char, next)   and tokenizer.label()      or
+      is.operator(char)      and tokenizer.operator()   or
+      is.symbol(char)        and pushToken('symbol')    or
+      pushToken('undefined')
   end
 
   return tokens
