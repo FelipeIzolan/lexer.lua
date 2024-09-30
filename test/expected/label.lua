@@ -1,10 +1,10 @@
 return {
-    {data="::", posEnd=2, posStart=1, type="label:start"},
-    {data="label0", posEnd=8, posStart=3, type="label"},
-    {data="::", posEnd=10, posStart=9, type="label:end"},
-    {data="::", posEnd=13, posStart=12, type="label:start"},
-    {data="label1", posEnd=24, posStart=19, type="label"},
-    {data="::", posEnd=31, posStart=30, type="label:end"},
-    {data="goto", posEnd=36, posStart=33, type="keyword"},
-    {data="label0", posEnd=43, posStart=38, type="label"}
+  { data = "::",     range = { 1, 2 },   type = "label:start" },
+  { data = "label0", range = { 3, 8 },   type = "label" },
+  { data = "::",     range = { 9, 10 },  type = "label:end" },
+  { data = "::",     range = { 12, 13 }, type = "label:start" },
+  { data = "label1", range = { 19, 24 }, type = "label" },
+  { data = "::",     range = { 30, 31 }, type = "label:end" },
+  { data = "goto",   range = { 33, 36 }, type = "keyword" },
+  { data = "label0", range = { 38, 43 }, type = "label" }
 }

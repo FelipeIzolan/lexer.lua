@@ -15,7 +15,7 @@ local function create_test(name, opts)
   unit.assertEquals(result, load_expected(name))
 
   for _, token in ipairs(result) do
-    unit.assertEquals(src:sub(token.posStart, token.posEnd), token.data)
+    unit.assertEquals(src:sub(token.range[1], token.range[2]), token.data)
   end
 end
 

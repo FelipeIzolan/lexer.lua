@@ -11,8 +11,7 @@ Each token has the following structure:
 {
   type = string, -- one of the token types below
   data = string, -- the source code that makes up the token
-  posStart = number, -- the position (inclusive) within that line that the token starts
-  posEnd = number -- the position (inclusive) within that line that the token ends
+  range = { start, end }
 }
 ```
 

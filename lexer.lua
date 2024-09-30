@@ -84,8 +84,7 @@ return function(src, opts)
     local token = {
       type = type,
       data = data,
-      posStart = start,
-      posEnd = pos - 1
+      range = { start, pos - 1 }
     }
 
     if token.data ~= '' then
@@ -293,27 +292,35 @@ return function(src, opts)
   function is.whitespace(char)
     return whitespace[char]
   end
+
   function is.comment(char, next)
     return char == '-' and next == '-'
   end
+
   function is.string(char)
     return char == '\'' or char == '"' or char == '['
   end
+
   function is.word(char)
     return alphabet[char]
   end
+
   function is.number(char, next)
     return digits[char] or (char == '.' and digits[next])
   end
+
   function is.point(char)
     return char == '.'
   end
+
   function is.label(char, next)
     return char == ':' and next == ':'
   end
+
   function is.operator(char)
     return operators[char] or char == "#"
   end
+
   function is.symbol(char)
     return symbols[char]
   end
@@ -323,16 +330,16 @@ return function(src, opts)
     local next = look()
 
     local _ =
-      is.whitespace(char)    and tokenizer.whitespace() or
-      is.comment(char, next) and tokenizer.comment()    or
-      is.string(char)        and tokenizer.string()     or
-      is.word(char)          and tokenizer.word()       or
-      is.number(char, next)  and tokenizer.number()     or
-      is.point(char)         and tokenizer.point()      or
-      is.label(char, next)   and tokenizer.label()      or
-      is.operator(char)      and tokenizer.operator()   or
-      is.symbol(char)        and pushToken('symbol')    or
-      pushToken('undefined')
+        is.whitespace(char) and tokenizer.whitespace() or
+        is.comment(char, next) and tokenizer.comment() or
+        is.string(char) and tokenizer.string() or
+        is.word(char) and tokenizer.word() or
+        is.number(char, next) and tokenizer.number() or
+        is.point(char) and tokenizer.point() or
+        is.label(char, next) and tokenizer.label() or
+        is.operator(char) and tokenizer.operator() or
+        is.symbol(char) and pushToken('symbol') or
+        pushToken('undefined')
   end
 
   return tokens
