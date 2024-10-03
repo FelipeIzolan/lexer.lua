@@ -20,49 +20,12 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-local function lookupify(src)
-  local list = {}
-
-  if type(src) == 'string' then
-    for i = 1, src:len() do
-      list[src:sub(i, i)] = true
-    end
-  elseif type(src) == 'table' then
-    for i = 1, #src do
-      list[src[i]] = true
-    end
-  end
-
-  return list
-end
+package.path = "../*/?.lua;../?.lua;" .. package.path
+require("utils")
 
 local function err(type, token)
   error("The program failed to identify the " .. type .. " token: " .. token)
 end
-
-local alphabet = lookupify('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_')
-local whitespace = lookupify('\n\t\r ')
-
-local digits = lookupify('0123456789')
-local hex_digits = lookupify('0123456789abcdefABCDEF')
-local scientific_digits = lookupify(".Ee+-")
-
-local symbols = lookupify("[]{}():;,")
-local operators = lookupify('+-*/%^~=><')
-local arithmetic_operators = lookupify('+-*/%^')
-local relational_operators = lookupify('~=><')
-
-local keywords = {
-  structure = lookupify({
-    'and', 'break', 'do', 'else', 'elseif', 'end', 'for', 'function',
-    'goto', 'if', 'in', 'local', 'not', 'or', 'repeat', 'return', 'then',
-    'until', 'while'
-  }),
-
-  value = lookupify({
-    'true', 'false', 'nil'
-  })
-}
 
 return function(src, opts)
   opts = opts or {}
